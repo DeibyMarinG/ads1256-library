@@ -1,3 +1,12 @@
+#include <Arduino.h>
+#include <SPI.h>
+
+#define ADS_SPISPEED   1536000 //Tclkin*5
+#define tCLKIN         1.302083333e-7 // cristal oscilador
+#define ADS_RST_PIN    48 //ADS1256 reset pin
+#define ADS_RDY_PIN    49 //ADS1256 data ready
+#define ADS_CS_PIN     53 //ADS1256 chip select
+// 11, 12 and 13 are taken by the SPI
 
 // ADS1256 Register
 #define STATUS 0x00
@@ -88,3 +97,7 @@
 #define BUFFER_ON_ACAL_OFF     0x03
 #define BUFFER_OFF_ACAL_ON     0x05
 #define BUFFER_ON_ACAL_ON      0x07
+
+void initADS();
+long readADS(byte channel);
+long readADSDiff(byte positiveCh, byte negativeCh);
