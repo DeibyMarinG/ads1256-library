@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <SPI.h>
 
+#ifndef calibrationchannel
+  #define calibrationchannel 8
+#endif
+
 #define ADS_SPISPEED   1536000 //Tclkin*5
 #define tCLKIN         1.302083333e-7 // cristal oscilador
 
@@ -108,3 +112,6 @@ void calibrateExternalOffset(byte channel1,byte channel2);
 void calibrateExternalGain(byte channel1,byte channel2);
 void calibrateInternalGain();
 void calibrateInternalOffset();
+void calibrateInternal();
+long readRegister(byte registro);
+unsigned long readRegister2(unsigned char reg);
