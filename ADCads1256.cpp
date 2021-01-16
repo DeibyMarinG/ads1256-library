@@ -1,11 +1,14 @@
-#include "ads1256u.h"
+#include "ADCads1256.h"
 #include <math.h>
 
-uint8_t ADS_RST_PIN; //ADS1256 reset pin
-uint8_t ADS_RDY_PIN; //ADS1256 data ready
-uint8_t ADS_CS_PIN; //ADS1256 chip select
+ ADCads1256::ADCads1256(uint8_t CS,uint8_t RDY,uint8_t RST){
 
-void writeRegister(byte registro,byte dato){
+ADS_CS_PIN=CS;
+ADS_RDY_PIN=RDY;
+ADS_RST_PIN=RST;
+}
+
+void ADCads1256::writeRegister(byte registro,byte dato){
   digitalWrite(ADS_CS_PIN, LOW); // ser maestro
   delayMicroseconds(50);
   while (digitalRead(ADS_RDY_PIN));// esperar hasta que este listo
@@ -14,24 +17,25 @@ void writeRegister(byte registro,byte dato){
   SPI.transfer(dato);
   delayMicroseconds(10);
 }
-#ifdef AVR
-unsigned long readRegister2(unsigned char reg) {
+unsigned long ADCads1256::readRegister2(unsigned char reg) {
   unsigned long readValue;
   digitalWrite(ADS_CS_PIN, LOW);
   while (digitalRead(ADS_RDY_PIN));
   SPI.transfer(RREG | reg);
   SPI.transfer(0);
-  __builtin_avr_delay_cycles(200);  // t6 delay (50*tCLKIN), 16Mhz avr clock is
+delayMicroseconds(10);
+  //__builtin_avr_delay_cycles(200);  // t6 delay (50*tCLKIN), 16Mhz avr clock is
                                     // approximately twice faster that 7.68 Mhz
                                     // ADS1256 master clock
   readValue = SPI.transfer(0);
-  __builtin_avr_delay_cycles(8);  // t11 delay
+delayMicroseconds(50);
+//  __builtin_avr_delay_cycles(8);  // t11 delay
 
   digitalWrite(ADS_CS_PIN, HIGH);
   return readValue;
 }
-#endif
-long readRegister(byte registro){
+
+long ADCads1256::readRegister(byte registro){
   long registrosalida;
   digitalWrite(ADS_CS_PIN, LOW); // ser maestro
   delayMicroseconds(50);
@@ -39,6 +43,8 @@ long readRegister(byte registro){
   SPI.transfer(SYNC);
   delayMicroseconds(10);
   //Despertar
+  writeRegister(DRATE,ADS1256_DRATE_25SPS);
+
   SPI.transfer(WAKEUP);
   delayMicroseconds(10);
   //Entrar a modo lectura
@@ -50,11 +56,43 @@ long readRegister(byte registro){
   return registrosalida;
 }
 
-void initADS(uint8_t CS,uint8_t RDY,uint8_t RST){
+void ADCads1256::changeDrate(String rate){
+  digitalWrite(ADS_CS_PIN, LOW);
+  while (digitalRead(ADS_RDY_PIN));
 
-ADS_CS_PIN=CS;
-ADS_RDY_PIN=RDY;
-ADS_RST_PIN=RST;
+if(rate.indexOf("2.5,")>=0){
+  writeRegister(DRATE,ADS1256_DRATE_2_5SPS);
+  Serial.println("set to 2.5SPS");
+}
+if(rate.indexOf("5,")==0){
+  writeRegister(DRATE,ADS1256_DRATE_5SPS);
+  Serial.println("set to 5SPS");
+}
+if(rate.indexOf("10,")>=0){
+  writeRegister(DRATE,ADS1256_DRATE_10SPS);
+  Serial.println("set to 10SPS");
+}
+if(rate.indexOf("15,")>=0){
+  writeRegister(DRATE,ADS1256_DRATE_15SPS);
+  Serial.println("set to 15SPS");
+}
+if(rate.indexOf("25,")>=0){
+  writeRegister(DRATE,ADS1256_DRATE_25SPS);
+  Serial.println("set to 25SPS");
+}
+if(rate.indexOf("30,")>=0){
+  writeRegister(DRATE,ADS1256_DRATE_30SPS);
+  Serial.println("set to 30SPS");
+}
+if((rate.indexOf("50,")>=0)){
+  writeRegister(DRATE,ADS1256_DRATE_50SPS);
+  Serial.println("set to 50SPS");
+}
+digitalWrite(ADS_CS_PIN, HIGH); //avisa que termina de escribir
+
+}
+
+void ADCads1256::initADS(){
 
   pinMode(ADS_CS_PIN, OUTPUT);
   pinMode(ADS_RDY_PIN, INPUT);
@@ -83,7 +121,7 @@ ADS_RST_PIN=RST;
   writeRegister(ADCON,adcon_data);
 
   //Data de muestreo
-  writeRegister(DRATE,ADS1256_DRATE_2_5SPS);
+  writeRegister(DRATE,ADS1256_DRATE_15SPS);
 
 
   Serial.println("ADS1256 configured");
@@ -98,16 +136,16 @@ ADS_RST_PIN=RST;
   //Serial.println("ADS1256 OFFSET AND GAIN calibrated");
 
 }
-void calibrateInternalGain(){
+void ADCads1256::calibrateInternalGain(){
   digitalWrite(ADS_CS_PIN, LOW);
   while (digitalRead(ADS_RDY_PIN));
   SPI.transfer(SELFGCAL);
   delay(830);
   digitalWrite(ADS_CS_PIN, HIGH); //avisa que termina de escribir
-//  Serial.println("Ganancia calibrada");
+  //Serial.println("Ganancia calibrada");
 }
 
-void calibrateInternalOffset(){
+void ADCads1256::calibrateInternalOffset(){
   digitalWrite(ADS_CS_PIN, LOW);
   while (digitalRead(ADS_RDY_PIN));
   SPI.transfer(SELFOCAL);
@@ -116,7 +154,7 @@ void calibrateInternalOffset(){
   //Serial.println("Offset calibrado");
 }
 
-void calibrateInternal(){
+void ADCads1256::calibrateInternal(){
   digitalWrite(ADS_CS_PIN, LOW);
   while (digitalRead(ADS_RDY_PIN));
   SPI.transfer(SELFCAL);
@@ -125,7 +163,7 @@ void calibrateInternal(){
   //Serial.println("Offset y Ganancia calibrado");
 }
 
-void calibrateExternalOffset(byte channel1,byte channel2) {
+void ADCads1256::calibrateExternalOffset(byte channel1,byte channel2) {
   digitalWrite(ADS_CS_PIN, LOW);//inicia comunicacion
   delayMicroseconds(50);
   SPI.beginTransaction(SPISettings(ADS_SPISPEED, MSBFIRST, SPI_MODE1)); // empieza la adq
@@ -154,7 +192,7 @@ void calibrateExternalOffset(byte channel1,byte channel2) {
   //Serial.println("Calibracion offset completa");
 }
 
-void calibrateExternalGain(byte channel1,byte channel2) {
+void ADCads1256::calibrateExternalGain(byte channel1,byte channel2) {
   digitalWrite(ADS_CS_PIN, LOW);//inicia comunicacion
   delayMicroseconds(50);
   SPI.beginTransaction(SPISettings(ADS_SPISPEED, MSBFIRST, SPI_MODE1)); // empieza la adq
@@ -183,12 +221,27 @@ void calibrateExternalGain(byte channel1,byte channel2) {
   //Serial.println("Calibracion offset completa");
 }
 
-long readADS(byte channel){
+long ADCads1256::readADS(byte channel){
   long resultado=readADSDiff(channel,calibrationchannel);
   return resultado;
 }
 
-long readADSDiff(byte channel, byte channel2) {
+void ADCads1256::chooseChannel(byte channel, byte channel2) {
+  digitalWrite(ADS_CS_PIN, LOW);//inicia comunicacion
+  byte data = (channel << 4) | channel2; //AIN-channel and AINCOM
+  writeRegister(MUX,data); //entra a modo mux y escoje el canal
+  //Sincronizar
+  while (digitalRead(ADS_RDY_PIN));
+  SPI.transfer(SYNC);
+  delayMicroseconds(50);
+  //Despertar
+  while (digitalRead(ADS_RDY_PIN));
+  SPI.transfer(WAKEUP);
+  delayMicroseconds(50);
+  digitalWrite(ADS_CS_PIN, HIGH);//termina comunicacion
+}
+
+long ADCads1256::readADSDiff(byte channel, byte channel2) {
    long adc_val = 0; // unsigned long is on 32 bits
   digitalWrite(ADS_CS_PIN, LOW);//inicia comunicacion
   delayMicroseconds(50);
@@ -196,19 +249,30 @@ long readADSDiff(byte channel, byte channel2) {
   delayMicroseconds(10);
 
 
-  while (digitalRead(ADS_RDY_PIN));
+  /*while (digitalRead(ADS_RDY_PIN));
 
   byte data = (channel << 4) | channel2; //AIN-channel and AINCOM
   writeRegister(MUX,data); //entra a modo mux y escoje el canal
 
   //Sincronizar
+  while (digitalRead(ADS_RDY_PIN));
   SPI.transfer(SYNC);
-  delayMicroseconds(10);
-
+  delayMicroseconds(50);
   //Despertar
+  while (digitalRead(ADS_RDY_PIN));
   SPI.transfer(WAKEUP);
-  delayMicroseconds(10);
+  delayMicroseconds(50);
   //while (digitalRead(ADS_RDY_PIN));
+*/
+  chooseChannel(channel,channel2);
+  digitalWrite(ADS_CS_PIN, LOW);
+  while (digitalRead(ADS_RDY_PIN));
+  SPI.transfer(SYNC);
+  delayMicroseconds(50);
+  //Despertar
+  while (digitalRead(ADS_RDY_PIN));
+  SPI.transfer(WAKEUP);
+  delayMicroseconds(50);
 
   //Entrar a modo lectura
   SPI.transfer(RDATA);
