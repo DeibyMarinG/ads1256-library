@@ -14,15 +14,15 @@
 This is an example where I used 2 ADC1256 connected to Arduino Due
 I even use the DAC of the arduino Due to write signals, and  the MPC4725 when I burn a DAC pin.
 
-This example was used for a communication with a QT aplication where the GUI sends through serial some instructions and the microcontroller responds with an OK. This implementation was used for transistor characterization, on this version 1.0 the system works but a better SYNC arduino-gui was needed.
+This example was used for a communication with a QT aplication where the GUI sends through serial some instructions and the microcontroller responds with an OK.
+This implementation was used for transistor characterization, on this version 1.0 the system works but a better SYNC arduino-gui was needed.
 **/
 
 
-#define calibrationchannel 8
+#define calibrationchannel 8 //this channel connected to analog ground
 
 #include "ADCads1256.h"
 #include "ads1256u.h"
-#include "Scheduler.h"
 #include <Wire.h>
 //#include <Adafruit_MCP4725.h>
 //#define DAC_RESOLUTION    (12)
